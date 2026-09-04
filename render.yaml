@@ -13,6 +13,8 @@ services:
         sync: false
       - key: ZEROTIER_MEMBER_ID
         sync: false
+      - key: ZEROTIER_IP_VERSION
+        value: "6"
       - key: UPSTREAM_SUBSCRIPTION_URL
         sync: false
       - key: SUBSCRIPTION_TOKEN
