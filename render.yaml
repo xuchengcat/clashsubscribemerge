@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: zt-clash-hosts
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: ZEROTIER_API_TOKEN
+        sync: false
+      - key: ZEROTIER_NETWORK_ID
+        sync: false
+      - key: ZEROTIER_MEMBER_ID
+        sync: false
+      - key: UPSTREAM_SUBSCRIPTION_URL
+        sync: false
+      - key: SUBSCRIPTION_TOKEN
+        sync: false

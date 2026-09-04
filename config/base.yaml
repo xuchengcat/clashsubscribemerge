@@ -1,0 +1,25 @@
+# Add your existing proxies, proxy-groups and rules below.
+# Do not put ZeroTier or subscription credentials in this file.
+mixed-port: 7890
+allow-lan: true
+bind-address: '*'
+mode: rule
+log-level: info
+ipv6: true
+
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  nameserver:
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+
+proxies: []
+proxy-groups:
+  - name: DIRECT
+    type: select
+    proxies:
+      - DIRECT
+rules:
+  - MATCH,DIRECT
