@@ -134,11 +134,9 @@ def formatted_subscription_url(format_name: str) -> str:
         for key, value in parse_qsl(parsed.query, keep_blank_values=True)
         if key.lower() not in {"flag", "sr"}
     ]
-    if format_name == "clash":
-        query.append(("flag", "clash"))
-    elif format_name == "shadowrocket":
+    if format_name == "shadowrocket":
         query.extend((("flag", "shadowrocket"), ("sr", "conf")))
-    else:
+    elif format_name != "clash":
         raise ValueError(f"Unknown subscription format: {format_name}")
     return urlunsplit(
         (parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment)
