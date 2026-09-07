@@ -13,7 +13,7 @@ The ZeroTier API token stays in Render environment variables and is never includ
    - `ZEROTIER_NETWORK_ID`: the ZeroTier network ID.
    - `ZEROTIER_MEMBER_ID`: the target member ID.
    - `ZEROTIER_IP_VERSION`: `auto` (default, IPv6 then IPv4), `4`, or `6`.
-   - `UPSTREAM_SUBSCRIPTION_URL`: the Meta-compatible base provider URL without `flag` or `sr` parameters. Clash uses it directly, while Shadowrocket adds its required format parameters.
+   - `UPSTREAM_SUBSCRIPTION_URL`: the base provider URL without `flag` or `sr` parameters. The service adds the required format parameters.
    - `UPSTREAM_USER_AGENT`: `ClashMetaForAndroid/2.11.24` (the default). This requests the same profile format as the Android app.
    - `SHADOWROCKET_UPSTREAM_USER_AGENT`: `Shadowrocket/2.2.68` (the default).
    - `SUBSCRIPTION_TOKEN`: a random URL-safe secret at least 32 characters long.
@@ -35,11 +35,10 @@ Set `UPSTREAM_SUBSCRIPTION_URL` to preserve your existing nodes, proxy groups, r
 
 If no upstream URL is set, the service instead returns `config/base.yaml`. This fallback is useful for development, but its committed example is direct-only and is not a replacement for a normal node subscription.
 
-For Clash, the service uses the configured base URL directly and expects
-Clash/Mihomo YAML. It deliberately does not add `flag=clash`, because this
-provider removes Meta protocols from that format. For Shadowrocket, it adds
-`flag=shadowrocket&sr=conf`, decodes the provider's native node subscription, and
-combines those nodes with groups and rules from the Clash response.
+For Clash, the service adds `flag=clash` and expects Clash/Mihomo YAML. For
+Shadowrocket, it adds `flag=shadowrocket&sr=conf`, decodes the provider's native
+node subscription, and combines those nodes with groups and rules from the Clash
+response.
 
 Edit `config/domains.txt` to add or remove hostnames. Use one hostname per line; blank lines and lines beginning with `#` are ignored.
 
