@@ -24,8 +24,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    config = upstream_config()
-    proxies = upstream_shadowrocket_proxies()
+    config, _ = upstream_config()
+    proxies, _ = upstream_shadowrocket_proxies()
     payload = shadowrocket_config(zerotier_ip_address(), config, proxies)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(payload, encoding="utf-8")

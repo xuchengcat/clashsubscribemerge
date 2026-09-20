@@ -40,6 +40,12 @@ Shadowrocket, it adds `flag=shadowrocket&sr=conf`, decodes the provider's native
 node subscription, and combines those nodes with groups and rules from the Clash
 response.
 
+The service also forwards the upstream `Subscription-Userinfo`,
+`Profile-Update-Interval`, and `Profile-Web-Page-Url` response headers so supported
+clients retain traffic usage, expiry, update interval, and account-page metadata.
+Only these subscription metadata headers are forwarded; transport and session
+headers from the provider are discarded.
+
 Edit `config/domains.txt` to add or remove hostnames. Use one hostname per line; blank lines and lines beginning with `#` are ignored.
 
 IP values are emitted as YAML strings by PyYAML, which is the expected representation in the `hosts` map.

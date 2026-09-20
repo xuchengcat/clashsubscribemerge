@@ -24,6 +24,11 @@ ROOT = Path(__file__).resolve().parent
 # Render provides environment variables directly. Locally, load the ignored .env file.
 load_dotenv(ROOT / ".env")
 HOSTS_FILE = ROOT / "config" / "domains.txt"
+SUBSCRIPTION_METADATA_HEADERS = (
+    "Subscription-Userinfo",
+    "Profile-Update-Interval",
+    "Profile-Web-Page-Url",
+)
 
 
 def required_env(name: str) -> str:
@@ -164,10 +169,19 @@ def fetch_subscription(url: str, headers: dict[str, str]) -> requests.Response:
     raise HTTPException(status_code=502, detail="Could not obtain upstream subscription") from last_error
 
 
-def upstream_config() -> dict[str, Any]:
+def subscription_metadata(response: requests.Response) -> dict[str, str]:
+    """Copy only client-facing subscription metadata from an upstream response."""
+    return {
+        name: value
+        for name in SUBSCRIPTION_METADATA_HEADERS
+        if (value := response.headers.get(name)) is not None
+    }
+
+
+def upstream_config() -> tuple[dict[str, Any], dict[str, str]]:
     """Fetch the original Clash/Mihomo YAML subscription when configured."""
     if not os.getenv("UPSTREAM_SUBSCRIPTION_URL", "").strip():
-        return load_base_config()
+        return load_base_config(), {}
     url = formatted_subscription_url("clash")
 
     try:
@@ -192,7 +206,7 @@ def upstream_config() -> dict[str, Any]:
             status_code=502,
             detail="Upstream subscription is not a Clash/Mihomo YAML configuration",
         )
-    return data
+    return data, subscription_metadata(response)
 
 
 def decode_base64(value: str | bytes) -> bytes:
@@ -200,7 +214,7 @@ def decode_base64(value: str | bytes) -> bytes:
     return base64.urlsafe_b64decode(raw + b"=" * (-len(raw) % 4))
 
 
-def upstream_shadowrocket_proxies() -> list[dict[str, Any]]:
+def upstream_shadowrocket_proxies() -> tuple[list[dict[str, Any]], dict[str, str]]:
     """Fetch and decode the provider's native Shadowrocket VMess subscription."""
     try:
         response = fetch_subscription(
@@ -258,7 +272,7 @@ def upstream_shadowrocket_proxies() -> list[dict[str, Any]]:
         raise HTTPException(
             status_code=502, detail="Shadowrocket subscription contains no VMess nodes"
         )
-    return proxies
+    return proxies, subscription_metadata(response)
 
 
 def shadowrocket_vmess_proxy(proxy: dict[str, Any]) -> str:
@@ -406,7 +420,7 @@ def subscription(subscription_token: str) -> Response:
 
     address = zerotier_ip_address()
     # Retain every upstream setting and change only the selected host mappings.
-    config = upstream_config()
+    config, metadata_headers = upstream_config()
     hosts = config.setdefault("hosts", {})
     if not isinstance(hosts, dict):
         raise RuntimeError("The base configuration's hosts key must be a YAML object")
@@ -416,7 +430,11 @@ def subscription(subscription_token: str) -> Response:
     return Response(
         content=payload,
         media_type="text/yaml; charset=utf-8",
-        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+        headers={
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+            **metadata_headers,
+        },
     )
 
 
@@ -426,9 +444,9 @@ def shadowrocket_subscription(subscription_token: str) -> Response:
     if not hmac.compare_digest(subscription_token, expected_token):
         raise HTTPException(status_code=404, detail="Not found")
 
-    payload = shadowrocket_config(
-        zerotier_ip_address(), upstream_config(), upstream_shadowrocket_proxies()
-    )
+    config, _ = upstream_config()
+    proxies, metadata_headers = upstream_shadowrocket_proxies()
+    payload = shadowrocket_config(zerotier_ip_address(), config, proxies)
     return Response(
         content=payload,
         media_type="text/plain; charset=utf-8",
@@ -437,5 +455,6 @@ def shadowrocket_subscription(subscription_token: str) -> Response:
             "Pragma": "no-cache",
             "X-Content-Type-Options": "nosniff",
             "Content-Disposition": 'inline; filename="shadowrocket.conf"',
+            **metadata_headers,
         },
     )
