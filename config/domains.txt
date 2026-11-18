@@ -1,3 +1,4 @@
 # One domain per line. This file is safe to commit; do not put API credentials here.
 xuchengcat.cn
 *.xuchengcat.cn
+*.speedtest.xuchengcat.cn
