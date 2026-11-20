@@ -5,3 +5,4 @@ xuchengcat.cn
 xuccat.dpdns.org
 *.xuccat.dpdns.org
 *.speedtest.xuccat.dpdns.org
+jellyfin.speedtest.xuccat.dpdns.org

@@ -49,6 +49,15 @@ def read_domains() -> list[str]:
     return domains
 
 
+def managed_direct_rules(domains: list[str]) -> list[str]:
+    """Keep dynamic server mappings from falling through to upstream proxies."""
+    return list(dict.fromkeys(
+        f"DOMAIN-SUFFIX,{domain[2:]},DIRECT" if domain.startswith("*.")
+        else f"DOMAIN,{domain},DIRECT"
+        for domain in domains
+    ))
+
+
 def load_base_config() -> dict[str, Any]:
     configured_path = Path(os.getenv("BASE_CONFIG_PATH", "config/base.yaml"))
     path = configured_path if configured_path.is_absolute() else ROOT / configured_path
@@ -355,7 +364,8 @@ def shadowrocket_config(
         rebuilt_groups.append(f"{name} = {group_type}," + ",".join(options + extra))
 
     canonical_groups = {name.upper(): name for name in group_names}
-    rules = []
+    domains = read_domains()
+    rules = managed_direct_rules(domains)
     for raw_rule in clash_config.get("rules") or []:
         line = str(raw_rule)
         parts = line.split(",")
@@ -371,7 +381,7 @@ def shadowrocket_config(
     if not isinstance(hosts, dict):
         raise RuntimeError("The upstream Clash hosts key must be a YAML object")
     hosts = {str(name): str(value) for name, value in hosts.items()}
-    hosts.update({domain: address for domain in read_domains()})
+    hosts.update({domain: address for domain in domains})
     dns = clash_config.get("dns") or {}
     nameservers = dns.get("nameserver") or ["system"] if isinstance(dns, dict) else ["system"]
     lines = [
@@ -419,12 +429,14 @@ def subscription(subscription_token: str) -> Response:
         raise HTTPException(status_code=404, detail="Not found")
 
     address = zerotier_ip_address()
-    # Retain every upstream setting and change only the selected host mappings.
+    # Managed server names must connect directly using the dynamic host mapping.
     config, metadata_headers = upstream_config()
     hosts = config.setdefault("hosts", {})
     if not isinstance(hosts, dict):
         raise RuntimeError("The base configuration's hosts key must be a YAML object")
-    hosts.update({domain: address for domain in read_domains()})
+    domains = read_domains()
+    hosts.update({domain: address for domain in domains})
+    config["rules"] = managed_direct_rules(domains) + list(config.get("rules") or [])
 
     payload = yaml.safe_dump(config, allow_unicode=True, sort_keys=False)
     return Response(

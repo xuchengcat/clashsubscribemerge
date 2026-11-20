@@ -75,6 +75,10 @@ class SubscriptionMetadataTests(unittest.TestCase):
         self.assertEqual(
             yaml.safe_load(response.body)["hosts"]["managed.example"], "2001:db8::1"
         )
+        self.assertEqual(
+            yaml.safe_load(response.body)["rules"],
+            ["DOMAIN,managed.example,DIRECT", "MATCH,PROXY"],
+        )
 
     @patch.object(app, "read_domains", return_value=["managed.example"])
     @patch.object(app, "zerotier_ip_address", return_value="2001:db8::1")
@@ -100,6 +104,17 @@ class SubscriptionMetadataTests(unittest.TestCase):
         self.assertEqual(response.headers["subscription-userinfo"], "upload=shadowrocket")
         self.assertEqual(response.headers["profile-update-interval"], "24")
         self.assertIn("managed.example = 2001:db8::1", response.body.decode())
+        rules = response.body.decode().split("[Rule]\n", 1)[1].split("\n[Host]", 1)[0]
+        self.assertEqual(
+            rules.strip().splitlines(),
+            ["DOMAIN,managed.example,DIRECT", "FINAL,PROXY"],
+        )
+
+    def test_wildcard_direct_rules_cover_nested_server_names(self) -> None:
+        self.assertEqual(
+            app.managed_direct_rules(["*.xuccat.dpdns.org", "*.xuccat.dpdns.org"]),
+            ["DOMAIN-SUFFIX,xuccat.dpdns.org,DIRECT"],
+        )
 
     @patch.object(app, "read_domains", return_value=["managed.example"])
     @patch.object(app, "zerotier_ip_address", return_value="2001:db8::1")

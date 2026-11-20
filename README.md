@@ -31,7 +31,7 @@ The ZeroTier API token stays in Render environment variables and is never includ
 
 ## Configure the returned Clash profile
 
-Set `UPSTREAM_SUBSCRIPTION_URL` to preserve your existing nodes, proxy groups, rules, and DNS settings. The service changes only its `hosts` mapping; any entries for domains in `config/domains.txt` are replaced with the current ZeroTier member address. `ZEROTIER_IP_VERSION=auto` prefers IPv6 and falls back to IPv4; set it to `4` or `6` to require a specific address family. The service accepts an IP-formatted `physicalAddress` (as returned by your controller) as well as standard ZeroTier assignment fields.
+Set `UPSTREAM_SUBSCRIPTION_URL` to preserve your existing nodes, proxy groups, rules, and DNS settings. Entries for domains in `config/domains.txt` are replaced with the current ZeroTier member address. Direct-routing rules for these domains are prepended to both Clash and Shadowrocket profiles, before upstream rules. `ZEROTIER_IP_VERSION=auto` prefers IPv6 and falls back to IPv4; set it to `4` or `6` to require a specific address family. The service accepts an IP-formatted `physicalAddress` (as returned by your controller) as well as standard ZeroTier assignment fields.
 
 If no upstream URL is set, the service instead returns `config/base.yaml`. This fallback is useful for development, but its committed example is direct-only and is not a replacement for a normal node subscription.
 
@@ -45,6 +45,8 @@ The service also forwards the upstream `Subscription-Userinfo`,
 clients retain traffic usage, expiry, update interval, and account-page metadata.
 Only these subscription metadata headers are forwarded; transport and session
 headers from the provider are discarded.
+
+Managed server domains connect directly so requests do not fall through to an upstream proxy that cannot resolve these private mappings. If a client does not apply a wildcard host mapping, add the full hostname as well (for example, `jellyfin.speedtest.xuccat.dpdns.org`). After deployment, update and activate the remote configuration in the client, then reconnect its VPN.
 
 Edit `config/domains.txt` to add or remove hostnames. Use one hostname per line; blank lines and lines beginning with `#` are ignored.
 
