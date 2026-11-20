@@ -2,3 +2,6 @@
 xuchengcat.cn
 *.xuchengcat.cn
 *.speedtest.xuchengcat.cn
+xuccat.dpdns.org
+*.xuccat.dpdns.org
+*.speedtest.xuccat.dpdns.org
