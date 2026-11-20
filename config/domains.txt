@@ -1,8 +1,32 @@
-# One domain per line. This file is safe to commit; do not put API credentials here.
+# Managed service domains; dynamically mapped to the existing member address.
 xuchengcat.cn
 *.xuchengcat.cn
-*.speedtest.xuchengcat.cn
 xuccat.dpdns.org
-*.xuccat.dpdns.org
 *.speedtest.xuccat.dpdns.org
 jellyfin.speedtest.xuccat.dpdns.org
+photoprism.speedtest.xuccat.dpdns.org
+transmission.speedtest.xuccat.dpdns.org
+dockhand.speedtest.xuccat.dpdns.org
+nextcloud.speedtest.xuccat.dpdns.org
+homeassistant.speedtest.xuccat.dpdns.org
+yacdclash.speedtest.xuccat.dpdns.org
+nginx.speedtest.xuccat.dpdns.org
+lrc.speedtest.xuccat.dpdns.org
+nodred.speedtest.xuccat.dpdns.org
+glances.speedtest.xuccat.dpdns.org
+exchange.speedtest.xuccat.dpdns.org
+esphome.speedtest.xuccat.dpdns.org
+xiaomusic.speedtest.xuccat.dpdns.org
+frigate.speedtest.xuccat.dpdns.org
+proxy.speedtest.xuccat.dpdns.org
+wechat.speedtest.xuccat.dpdns.org
+moontv.speedtest.xuccat.dpdns.org
+ssh.speedtest.xuccat.dpdns.org
+openclaw.speedtest.xuccat.dpdns.org
+webdav.speedtest.xuccat.dpdns.org
+kavita.speedtest.xuccat.dpdns.org
+unwifi.speedtest.xuccat.dpdns.org
+moviepilot.speedtest.xuccat.dpdns.org
+blender.speedtest.xuccat.dpdns.org
+speedtest.speedtest.xuccat.dpdns.org
+chrome.speedtest.xuccat.dpdns.org
