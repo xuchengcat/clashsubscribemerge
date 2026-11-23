@@ -1,6 +1,7 @@
 """Dynamic Clash/Mihomo subscription backed by a ZeroTier member address."""
 
 import hmac
+import copy
 import ipaddress
 import base64
 import logging
@@ -56,6 +57,44 @@ def managed_direct_rules(domains: list[str]) -> list[str]:
         else f"DOMAIN,{domain},DIRECT"
         for domain in domains
     ))
+
+
+def apply_gpt_policy(
+    config: dict[str, Any], proxies: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """Keep GPT dependencies on eligible nodes, using the server's routing policy."""
+    policy = yaml.safe_load((ROOT / "config/gpt.yaml").read_text(encoding="utf-8"))
+    result = copy.deepcopy(config)
+    name = policy["group"]
+    available = [str(p["name"]) for p in (proxies if proxies is not None else result.get("proxies", []))
+                 if policy["node_keyword"].casefold() in str(p.get("name", "")).casefold()]
+    groups = result.get("proxy-groups") or []
+    if not available:
+        if any(g.get("name") == name for g in groups):
+            raise RuntimeError("No GPT-labelled nodes available for the ChatGPT policy")
+        # Direct-only development profiles/providers without a GPT category.
+        return result
+    ordered = list(dict.fromkeys([n for n in policy["preferred_nodes"] if n in available] + available))
+    group = {"name": name, "type": "fallback", "proxies": ordered,
+             "url": policy["healthcheck_url"], "interval": 300, "lazy": False,
+             "expected-status": "200/302"}
+    result["proxy-groups"] = [group if g.get("name") == name else g for g in groups]
+    if not any(g.get("name") == name for g in groups):
+        result["proxy-groups"].append(group)
+    rules = [f"{rule},{name}" for rule in policy["rules"]]
+    keys = set(policy["rules"])
+    result["rules"] = rules + [r for r in result.get("rules", [])
+                                if ",".join(str(r).split(",")[:2]) not in keys]
+    result["mode"] = "rule"
+    dns = result.setdefault("dns", {})
+    dns["enable"] = True
+    dns.setdefault("proxy-server-nameserver", policy["node_dns_servers"])
+    dns_policy = dns.setdefault("nameserver-policy", {})
+    resolver = policy["dns_server"] + f"#{name}&disable-ipv6=true&disable-qtype-65=true"
+    for rule in policy["rules"]:
+        kind, domain = rule.split(",", 1)
+        dns_policy[("+." if kind == "DOMAIN-SUFFIX" else "") + domain] = [resolver]
+    return result
 
 
 def load_base_config() -> dict[str, Any]:
@@ -335,6 +374,7 @@ def shadowrocket_config(
             "Shadowrocket conversion does not yet support proxy types: "
             + ", ".join(unsupported)
         )
+    clash_config = apply_gpt_policy(clash_config, proxies)
     proxy_names = [str(proxy.get("name", "")) for proxy in proxies]
     if any(not name for name in proxy_names) or len(proxy_names) != len(set(proxy_names)):
         raise RuntimeError("Upstream proxy names must be non-empty and unique")
@@ -353,6 +393,9 @@ def shadowrocket_config(
     for group in clash_groups:
         name = str(group.get("name", ""))
         group_type = str(group.get("type", "select"))
+        if name == "ChatGPT":
+            # Keep the same eligible nodes/order with Shadowrocket's manual picker.
+            group_type = "select"
         options = [str(item) for item in (group.get("proxies") or [])]
         options = [item for item in options if item in proxy_name_set | group_names | {"DIRECT", "REJECT", "PROXY"}]
         if not options:
@@ -371,10 +414,13 @@ def shadowrocket_config(
         parts = line.split(",")
         if parts[0].strip().upper() == "MATCH":
             parts[0] = "FINAL"
-        policy_index = -2 if parts[-1].strip() == "no-resolve" else -1
+        policy_index = -2 if parts[-1].strip() in {"no-resolve", "force-remote-dns"} else -1
         policy = parts[policy_index].strip()
         if policy.upper() in canonical_groups:
             parts[policy_index] = canonical_groups[policy.upper()]
+        if policy == "ChatGPT" and parts[0].strip().upper() in {"DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD"}:
+            if "force-remote-dns" not in parts:
+                parts.append("force-remote-dns")
         rules.append(",".join(parts))
 
     hosts = clash_config.get("hosts") or {}
@@ -431,6 +477,7 @@ def subscription(subscription_token: str) -> Response:
     address = zerotier_ip_address()
     # Managed server names must connect directly using the dynamic host mapping.
     config, metadata_headers = upstream_config()
+    config = apply_gpt_policy(config)
     hosts = config.setdefault("hosts", {})
     if not isinstance(hosts, dict):
         raise RuntimeError("The base configuration's hosts key must be a YAML object")

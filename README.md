@@ -52,6 +52,30 @@ Edit `config/domains.txt` to add or remove hostnames. Use one hostname per line;
 
 IP values are emitted as YAML strings by PyYAML, which is the expected representation in the `hosts` map.
 
+## ChatGPT routing
+
+`config/gpt.yaml` mirrors the server VPN's GPT dependency domains and preferred
+node order. Managed GPT rules take precedence over conflicting provider rules,
+including login, challenge, static asset and telemetry dependencies. The existing
+`ChatGPT` group contains only nodes with `GPT` in their names, ordered with the
+server's US nodes first, then its other eligible nodes. It never includes the
+general node selector or DIRECT. A provider that defines ChatGPT but supplies no
+GPT-labelled nodes fails explicitly rather than silently routing through arbitrary
+nodes. Providers without a GPT category or labelled nodes retain their behavior.
+
+Clash uses a fallback group with an IP-literal health-check URL to avoid recursive
+DNS dependencies. GPT domain DNS queries use Cloudflare DoH through that group,
+with AAAA and HTTPS/TYPE65 responses disabled for those domains. Node bootstrap
+DNS uses direct IP-literal DoH when the upstream has not configured a bootstrap
+resolver. Other DNS policies, global IPv6 and the four service Hosts remain intact.
+
+Shadowrocket uses the same eligible node order in its ChatGPT selector and adds
+`force-remote-dns` to GPT domain rules. It does not receive Mihomo-specific DNS
+parameters. After updating and activating the remote configuration, reconnect the
+VPN and select a GPT-labelled node in ChatGPT if a previous selection is cached.
+Connectivity checks do not guarantee account-specific ChatGPT access or that a
+provider's GPT-labelled exit will always remain usable.
+
 ## Local test
 
 PowerShell:
