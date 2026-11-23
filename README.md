@@ -46,7 +46,7 @@ clients retain traffic usage, expiry, update interval, and account-page metadata
 Only these subscription metadata headers are forwarded; transport and session
 headers from the provider are discarded.
 
-Managed server domains connect directly so requests do not fall through to an upstream proxy that cannot resolve these private mappings. If a client does not apply a wildcard host mapping, add the full hostname as well (for example, `jellyfin.speedtest.xuccat.dpdns.org`). After deployment, update and activate the remote configuration in the client, then reconnect its VPN.
+Managed server domains connect directly so requests do not fall through to an upstream proxy that cannot resolve these private mappings. Clash and Shadowrocket share four compact host mappings: `xuchengcat.cn`, `*.xuchengcat.cn`, `xuccat.dpdns.org`, and `*.speedtest.xuccat.dpdns.org`. Service subdomains use the wildcard entries instead of per-service host mappings; wildcard entries also generate `DOMAIN-SUFFIX` direct-routing rules. After deployment, update and activate the remote configuration in the client, then reconnect its VPN.
 
 Edit `config/domains.txt` to add or remove hostnames. Use one hostname per line; blank lines and lines beginning with `#` are ignored.
 
